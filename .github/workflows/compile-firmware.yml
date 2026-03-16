@@ -1,0 +1,32 @@
+name: Compile CyberFidget Firmware
+on:
+  workflow_dispatch:
+jobs:
+  build-platformio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout user's code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install PlatformIO and esptool
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+          pip install esptool
+          
+      - name: Compile the firmware
+        run: pio run -e adafruit_feather_esp32_v2
+        
+      - name: Merge the firmware
+        run: |
+          esptool.py --chip esp32 merge_bin -o .pio/build/adafruit_feather_esp32_v2/merged_firmware.bin           --flash_mode dio --flash_freq 80m --flash_size 8MB           0x1000 .pio/build/adafruit_feather_esp32_v2/bootloader.bin           0x8000 .pio/build/adafruit_feather_esp32_v2/partitions.bin           0x10000 .pio/build/adafruit_feather_esp32_v2/firmware.bin
+          
+      - name: Upload merged firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: .pio/build/adafruit_feather_esp32_v2/merged_firmware.bin
