@@ -1,0 +1,20 @@
+# PlatformIO build artifacts
+.pio/
+
+# IDE / AI tool configs
+.vscode/
+.claude/
+.cursor/
+
+# Credentials
+include/credentials.h
+
+# WASM build artifacts
+wasm/build/
+wasm/app/
+wasm/font_preview/build/
+
+# Logs
+*.log
+PLAN.md
+CLAUDE.md
