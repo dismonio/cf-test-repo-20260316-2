@@ -1,0 +1,305 @@
+// SPDX-License-Identifier: GPL-3.0-or-later WITH Cyberfidget-HAL-exception
+// Copyright (c) 2023-2026 Dismo Industries LLC
+
+#include "HAL.h"
+
+// Include all low-level libraries and drivers:
+#include <Wire.h>
+#include <esp_sleep.h>
+#include <esp_task_wdt.h>
+#include <esp_system.h>
+#include <SSD1306Wire.h>
+#include <Adafruit_NeoPixel.h>
+
+#include "AudioManager.h"
+#include "BatteryManager.h"
+#include "RGBController.h"
+#include "SliderPosition.h"
+
+#include "SparkFun_LIS2DH12.h"
+#include "ButtonManager.h"
+
+
+// Pin Assignments
+constexpr int POWER_PIN_OLED = 12;
+constexpr int POWER_PIN_AUX  = 2;
+constexpr int CHRG_ENA       = 13;
+constexpr int OLED_RESET     = 7;
+constexpr int VOLT_READ_PIN  = 35;  // Analog pin for slider voltage reading
+
+// RGBW LEDs (PIN_NEOPIXEL macro defined by board variant = GPIO 0)
+constexpr int RGB_COUNT    = 4;
+const uint16_t pixel_Front_Top    = 1;
+const uint16_t pixel_Front_Middle = 2;
+const uint16_t pixel_Front_Bottom = 3;
+const uint16_t pixel_Back         = 0;
+
+// Buttons
+const int button_TopLeft = 36;
+const int button_TopRight = 37;
+const int button_MiddleLeft = 38;
+const int button_MiddleRight = 39;
+const int button_BottomLeft = 34;
+const int button_BottomRight = 15;
+
+const int button_TopLeftIndex = 0;
+const int button_TopRightIndex = 1;
+const int button_MiddleLeftIndex = 2;
+const int button_MiddleRightIndex = 3;
+const int button_BottomLeftIndex = 4;
+const int button_BottomRightIndex = 5;
+
+const int button_LeftIndex = button_MiddleLeftIndex;
+const int button_RightIndex = button_MiddleRightIndex;
+const int button_UpIndex = button_TopLeftIndex;
+const int button_DownIndex = button_TopRightIndex;
+const int button_SelectIndex = button_BottomLeftIndex;
+const int button_EnterIndex = button_BottomRightIndex;
+
+// Accelerometer
+float accelX = 0;
+float accelY = 0;
+float accelZ = 0;
+float tempC  = 0;
+
+// Slider
+int sliderPosition_Millivolts     = 0;
+int sliderPosition_12Bits         = 0;
+uint16_t sliderPosition_12Bits_Inverted= 0;
+uint8_t  sliderPosition_8Bits          = 0;
+uint8_t  sliderPosition_8Bits_Inverted = 0;
+// Filtered slider positions
+float sliderPosition_12Bits_Filtered = 0.0f;
+float sliderPosition_12Bits_Inverted_Filtered = 0.0f;
+int sliderPosition_8Bits_Filtered = 0;
+int sliderPosition_8Bits_Inverted_Filtered = 0;
+float sliderPosition_Percentage_Filtered = 0.0f;
+float sliderPosition_Percentage_Filtered_Old = 0.0f;
+float sliderPosition_Percentage_Inverted_Filtered = 0.0f;
+
+// Battery
+float    batteryVoltage             = 0.0f;
+float    batteryVoltagePercentage   = 0.0f;
+uint16_t batteryVoltageLowCutoff    = 2750;
+uint16_t batteryVoltageHighCutoff   = 4200;
+bool     preventSleepWhileCharging  = true;
+bool     enableBatterySOCCutoff     = false;
+float    batterySOCCutoff           = 80.0f;
+float    sleepChargingChangeThreshold = -10.0f;
+float    batteryChangeRate          = 0.0f;
+
+
+namespace {
+    static AudioManager       s_audioManager;
+
+    constexpr int numButtons = 6;
+
+    static const int s_buttonPins[numButtons] = {
+        button_TopLeft,
+        button_TopRight,
+        button_MiddleLeft,
+        button_MiddleRight,
+        button_BottomLeft,
+        button_BottomRight
+    };
+    static const bool s_usePullups[numButtons] = {false, false, false, false, false, true};
+
+    static ButtonManager s_buttonManager(
+        s_buttonPins,
+        s_usePullups,
+        numButtons,
+        20UL,    // Debounce ms
+        1500UL   // Hold threshold ms
+    );
+
+    static SPARKFUN_LIS2DH12 s_accel;
+    static BatteryManager s_batteryManager;
+
+    // RGBW LEDs
+    static Adafruit_NeoPixel s_rgbStrip(RGB_COUNT, 0, NEO_GRBW + NEO_KHZ800);
+
+    // Real display
+    static SSD1306Wire s_realDisplay(0x3C, SDA, SCL);
+    static DisplayProxy s_displayProxy(s_realDisplay);
+}
+
+namespace HAL
+{
+    void initHardware()
+    {
+        pinMode(OLED_RESET, OUTPUT);
+        digitalWrite(OLED_RESET, LOW);
+
+        // Turn on the OLED power regulator
+        pinMode(POWER_PIN_OLED, OUTPUT);
+        digitalWrite(POWER_PIN_OLED, HIGH);
+        delay(200);
+        digitalWrite(OLED_RESET, HIGH);
+        delay(10);
+
+        // Turn on the AUX regulator
+        pinMode(POWER_PIN_AUX, OUTPUT);
+        digitalWrite(POWER_PIN_AUX, HIGH);
+
+        Serial.begin(921600);
+
+        // Initialize display
+        s_realDisplay.init();
+        s_realDisplay.setFont(ArialMT_Plain_10);
+
+        // Initialize I2C for accelerometer
+        Wire.begin(SDA, SCL);
+        if (!s_accel.begin())
+        {
+            ESP_LOGI(TAG_MAIN, "Accelerometer not detected. Halting...");
+            while (1);
+        }
+
+        s_buttonManager.init();
+        s_audioManager.init();
+        s_batteryManager.init();
+
+        // Slider input
+        pinMode(VOLT_READ_PIN, INPUT);
+
+        // RGB LEDs (no-op when NeoPixel is disabled)
+        initRGB();
+
+        printWakeupReason();
+    }
+
+    void initEasyEverything()
+    {
+        configureWakeupPins();
+        esp_log_level_set("*", ESP_LOG_VERBOSE);
+        esp_log_level_set(TAG_MAIN, ESP_LOG_VERBOSE);
+        initHardware();
+        ESP_LOGI(TAG_MAIN, "Setup() complete");
+    }
+
+    void loopHardware()
+    {
+        millis_NOW = millis();
+
+        s_audioManager.loop();
+        s_buttonManager.update();
+        updateStrip(); // no-op when NeoPixel is disabled
+
+        if ((millis_NOW - millis_HAL_TASK_20MS) >= TASK_20MS) {
+            millis_HAL_TASK_20MS = millis_NOW;
+            sliderPositionRead(VOLT_READ_PIN);
+        }
+
+        if ((millis_NOW - millis_HAL_TASK_50MS) >= TASK_50MS) {
+            millis_HAL_TASK_50MS = millis_NOW;
+            HAL::updateAccelerometer();
+        }
+
+        if ((millis_NOW - millis_HAL_TASK_200MS) >= TASK_200MS) {
+            millis_HAL_TASK_200MS = millis_NOW;
+            s_batteryManager.update();
+        }
+    }
+
+    AudioManager& audioManager()        { return s_audioManager; }
+    ButtonManager& buttonManager()      { return s_buttonManager; }
+    SSD1306Wire& realDisplay()          { return s_realDisplay; }
+    SPARKFUN_LIS2DH12& accelerometer()  { return s_accel; }
+
+    void configureWakeupPins()
+    {
+        esp_sleep_enable_ext0_wakeup(GPIO_NUM_15, LOW);
+    }
+
+    void enterDeepSleep()
+    {
+        esp_deep_sleep_start();
+    }
+
+    float getAccelerometerX() { return s_accel.getX(); }
+    float getAccelerometerY() { return s_accel.getY(); }
+    float getAccelerometerZ() { return s_accel.getZ(); }
+
+    void setOledPower(bool on)
+    {
+        digitalWrite(POWER_PIN_OLED, on ? HIGH : LOW);
+    }
+
+    DisplayProxy& displayProxy() {
+        return s_displayProxy;
+    }
+
+    void clearDisplay()
+    {
+        s_realDisplay.clear();
+    }
+
+    void drawString(int16_t x, int16_t y, const String &text)
+    {
+        s_realDisplay.drawString(x, y, text);
+    }
+
+    void updateDisplay()
+    {
+        s_realDisplay.display();
+    }
+
+    Adafruit_NeoPixel& strip() { return s_rgbStrip; }
+
+    void setRgbLed(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t w)
+    {
+        s_rgbStrip.setPixelColor(index, s_rgbStrip.Color(r, g, b, w));
+        invalidateColorCache();
+        markDirty();
+    }
+
+    void setRgbLedsOff()
+    {
+        setColorsOff();
+    }
+
+    void chargingEnable()
+    {
+        pinMode(CHRG_ENA, OUTPUT);
+        digitalWrite(CHRG_ENA, HIGH);
+    }
+
+    void chargingDisable()
+    {
+        pinMode(CHRG_ENA, OUTPUT);
+        digitalWrite(CHRG_ENA, LOW);
+    }
+
+    void updateAccelerometer()
+    {
+            accelX = s_accel.getX();
+            accelY = s_accel.getY();
+            accelZ = s_accel.getZ();
+            tempC  = s_accel.getTemperature();
+    }
+
+    void printWakeupReason() {
+        esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+
+        switch (wakeup_reason) {
+          case ESP_SLEEP_WAKEUP_EXT0:
+            ESP_LOGI(TAG_MAIN, "Wakeup caused by external signal using RTC_IO");
+            break;
+          case ESP_SLEEP_WAKEUP_EXT1:
+            ESP_LOGI(TAG_MAIN, "Wakeup caused by external signal using RTC_CNTL");
+            break;
+          case ESP_SLEEP_WAKEUP_TIMER:
+            ESP_LOGI(TAG_MAIN, "Wakeup caused by timer");
+            break;
+          case ESP_SLEEP_WAKEUP_TOUCHPAD:
+            ESP_LOGI(TAG_MAIN, "Wakeup caused by touchpad");
+            break;
+          case ESP_SLEEP_WAKEUP_ULP:
+            ESP_LOGI(TAG_MAIN, "Wakeup caused by ULP program");
+            break;
+          default:
+            ESP_LOGI(TAG_MAIN, "Wakeup was not caused by deep sleep");
+            break;
+        }
+      }
+}
