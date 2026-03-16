@@ -1,0 +1,18 @@
+{
+    "name": "DisplayProxy",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "BatteryManager"
+        },
+        {
+            "name": "icons"
+        },
+        {
+            "name": "SSD1306Wire"
+        },
+        {
+            "name": "DisplayProxy"
+        }
+    ]
+}
