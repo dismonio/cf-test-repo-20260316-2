@@ -1,0 +1,30 @@
+{
+    "name": "StratagemGame",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "ButtonManager"
+        },
+        {
+            "name": "StratagemGame"
+        },
+        {
+            "name": "globals"
+        },
+        {
+            "name": "StratagemGameSprites"
+        },
+        {
+            "name": "AudioManager"
+        },
+        {
+            "name": "DisplayProxy"
+        },
+        {
+            "name": "MenuManager"
+        },
+        {
+            "name": "HAL"
+        }
+    ]
+}
