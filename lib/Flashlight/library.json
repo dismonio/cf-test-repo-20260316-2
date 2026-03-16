@@ -1,0 +1,27 @@
+{
+    "name": "Flashlight",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "HAL"
+        },
+        {
+            "name": "Flashlight"
+        },
+        {
+            "name": "DisplayProxy"
+        },
+        {
+            "name": "MenuManager"
+        },
+        {
+            "name": "RGBController"
+        },
+        {
+            "name": "ButtonManager"
+        },
+        {
+            "name": "globals"
+        }
+    ]
+}
