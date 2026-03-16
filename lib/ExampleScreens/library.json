@@ -1,0 +1,27 @@
+{
+    "name": "ExampleScreens",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "HAL"
+        },
+        {
+            "name": "MenuManager"
+        },
+        {
+            "name": "RGBController"
+        },
+        {
+            "name": "ButtonManager"
+        },
+        {
+            "name": "ExampleScreens"
+        },
+        {
+            "name": "images"
+        },
+        {
+            "name": "globals"
+        }
+    ]
+}
