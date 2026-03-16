@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: GPL-3.0-or-later WITH Cyberfidget-HAL-exception
+// Copyright (c) 2023-2026 Dismo Industries LLC
+
+#include "globals.h"
+
+// Timers
+unsigned long millis_NOW             = 0;
+unsigned long millisOldHeartbeat    = 0;
+unsigned long millis_HAL_TASK_200MS          = 0;
+unsigned long millis_APP_TASK_200MS          = 0;
+unsigned long millis_HAL_TASK_50MS           = 0;
+unsigned long millis_HAL_TASK_20MS           = 0;
+unsigned long millis_APP_TASK_20MS           = 0;
+unsigned long millis_APP_LASTINTERACTION = 0;
+int TASK_20MS = 20;
+int TASK_50MS = 50;
+int TASK_200MS = 200;
+int TASK_LASTINTERACT = 60000; // 1 minute
+
+// Logging
+const char* TAG_MAIN = "mainApp";
+
+// App modes
+int appActive      = 0;
+int appActiveSaved = 0;
+int appPreviously  = 0;
+
+// States
+bool accelerometerScreenEnabled = false;
+bool reactionGameEnabled        = false;
+volatile bool buttonPressed     = false;
+
+// Buttons
+int buttonCounter[numButtons]       = {0};
+int buttonCounterSaved[numButtons]  = {0};
+
+
+// WiFi
+char wifiAP_SSID[]   = "CyberFidget_AP";
+bool isTryingToConnect= false;
+
+// Clock
+bool clockScreenEnabled = false;
+struct tm currentTime   = {0};
+
+// Audio beep logic
+bool beepActive       = false;
+float beepFrequency   = 440.0f;
