@@ -1,0 +1,7 @@
+{
+    "name": "CyberFidgie",
+    "version": "1.0.0",
+    "dependencies": [
+        {"name": "HAL"}
+    ]
+}
