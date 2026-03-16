@@ -1,0 +1,1022 @@
+// SPDX-License-Identifier: GPL-3.0-or-later WITH Cyberfidget-HAL-exception
+// Copyright (c) 2023-2026 Dismo Industries LLC
+
+#pragma once
+
+const char PORTAL_PAGE_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>CyberFidget</title>
+<style>
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #1a2332;
+  --bg-tertiary: #162030;
+  --text-primary: #e8eef5;
+  --text-secondary: #8b949e;
+  --accent: #68e1fd;
+  --accent-hover: #8aecff;
+  --accent-dim: rgba(104,225,253,0.1);
+  --magenta: #ff6bce;
+  --danger: #ff4444;
+  --danger-hover: #ff6666;
+  --success: #3fb950;
+  --border: rgba(104,225,253,0.15);
+  --radius: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;display:flex;overflow:hidden}
+a{color:var(--accent);text-decoration:none}
+
+/* Hamburger */
+.hamburger{display:none;position:fixed;top:10px;left:10px;z-index:301;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);width:40px;height:40px;cursor:pointer;font-size:1.4em;color:var(--accent);align-items:center;justify-content:center;line-height:1}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:199}
+
+/* Sidebar */
+.sidebar{width:220px;background:var(--bg-tertiary);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;z-index:200}
+.sidebar-brand{padding:20px 16px 16px;text-align:center;border-bottom:1px solid var(--border)}
+.logo{position:relative;display:inline-block}
+.logo-shadow{position:absolute;top:2px;left:2px;font-family:'Arial Black',Impact,sans-serif;font-size:22px;font-weight:900;letter-spacing:3px;color:var(--magenta);opacity:0.7;white-space:nowrap}
+.logo-main{position:relative;font-family:'Arial Black',Impact,sans-serif;font-size:22px;font-weight:900;letter-spacing:3px;color:var(--accent);text-shadow:0 0 10px rgba(104,225,253,0.4),0 0 20px rgba(104,225,253,0.2);white-space:nowrap}
+.logo-sub{font-size:0.6em;color:var(--text-secondary);letter-spacing:2px;margin-top:4px}
+.sidebar-nav{padding:8px 0;flex:1;overflow-y:auto}
+.nav-item{display:flex;align-items:center;padding:10px 16px;color:var(--text-secondary);cursor:pointer;border-left:3px solid transparent;transition:all 0.2s;font-size:0.9em}
+.nav-item:hover{background:var(--accent-dim);color:var(--text-primary)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-dim)}
+.nav-item .icon{margin-right:10px;font-size:1.1em}
+.nav-item .badge{margin-left:auto;font-size:0.7em;background:var(--bg-secondary);padding:2px 6px;border-radius:10px;color:var(--text-secondary)}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
+.page-header{padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-secondary)}
+.page-header h1{font-size:1.15em;font-weight:600}
+.page-header .status{font-size:0.8em;color:var(--text-secondary);margin-top:2px}
+.content{flex:1;overflow-y:auto;padding:16px 20px;padding-bottom:120px}
+
+/* Banner */
+.banner{background:rgba(104,225,253,0.08);border-bottom:1px solid var(--border);padding:8px 20px;font-size:0.82em;color:var(--text-secondary);display:none;align-items:center;gap:8px}
+.banner.show{display:flex}
+.banner .url{color:var(--accent);font-weight:600;font-family:monospace}
+.banner .close-banner{margin-left:auto;cursor:pointer;color:var(--text-secondary);padding:2px 6px}
+
+/* Drop zone */
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:24px 16px;text-align:center;margin-bottom:16px;cursor:pointer;transition:all 0.2s;background:var(--accent-dim)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(104,225,253,0.08)}
+.drop-zone p{color:var(--text-secondary);margin-bottom:2px}
+.drop-zone .main-text{color:var(--accent);font-size:1em;font-weight:500}
+.drop-zone .hint{font-size:0.8em}
+.drop-zone .folder-sel{margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.82em}
+.drop-zone .folder-sel select{background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius);padding:3px 8px;font-size:0.9em}
+input[type="file"]{display:none}
+
+/* Upload bar */
+.upload-bar{display:none;margin-bottom:16px}
+.upload-bar.active{display:block}
+.upload-bar .bar{height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden}
+.upload-bar .fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:3px;transition:width 0.15s}
+.upload-bar .info{display:flex;justify-content:space-between;font-size:0.8em;color:var(--text-secondary);margin-top:4px}
+
+/* Section headers */
+.section-hdr{font-size:0.82em;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.section-hdr .spacer{flex:1}
+.section-hdr .action{font-size:0.9em;color:var(--accent);cursor:pointer;text-transform:none;padding:2px 8px}
+.section-hdr .action:hover{background:var(--accent-dim);border-radius:var(--radius)}
+.view-toggle{display:flex;gap:2px}
+.view-toggle .vt{padding:3px 10px;cursor:pointer;border-radius:var(--radius);font-size:0.82em;color:var(--text-secondary)}
+.view-toggle .vt.active{background:var(--accent-dim);color:var(--accent)}
+
+/* File tree */
+.file-tree{list-style:none}
+.file-tree li{display:flex;align-items:center;padding:7px 10px;border-radius:var(--radius);margin-bottom:1px;transition:background 0.15s;gap:8px}
+.file-tree li:hover{background:var(--accent-dim)}
+.file-tree .icon{flex-shrink:0;width:18px;text-align:center}
+.file-tree .name{flex:1;font-size:0.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.file-tree .size{color:var(--text-secondary);font-size:0.78em;flex-shrink:0}
+.file-tree .acts{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity 0.15s}
+.file-tree li:hover .acts{opacity:1}
+.file-tree .sub{padding-left:20px}
+.folder-toggle{cursor:pointer;user-select:none;color:var(--accent);font-weight:600}
+
+/* Search */
+.search-row{margin-bottom:10px;display:none}
+.search-row input{width:100%;padding:8px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:0.88em;outline:none}
+.search-row input:focus{border-color:var(--accent)}
+.search-row.show{display:block}
+
+/* Track table (flat view) */
+.track-table{width:100%;border-collapse:collapse;display:none;font-size:0.85em}
+.track-table.show{display:table}
+.track-table th{text-align:left;color:var(--text-secondary);font-weight:500;font-size:0.8em;text-transform:uppercase;letter-spacing:0.3px;padding:8px 6px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+.track-table th:hover{color:var(--accent)}
+.sort-arrow{font-size:0.7em;margin-left:2px;opacity:0.4}
+.track-table th .sort-arrow.asc,.track-table th .sort-arrow.desc{opacity:1;color:var(--accent)}
+.track-table td{padding:7px 6px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
+.track-table tr:hover td{background:var(--accent-dim)}
+.track-table tr.playing td{background:rgba(104,225,253,0.12)}
+.track-table tr.playing td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.pl-track.playing{background:var(--accent-dim) !important}
+.pl-track.playing .num{color:var(--accent);font-weight:600}
+.track-table .col-title{min-width:120px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track-table .col-artist,.track-table .col-album{color:var(--text-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track-table .col-size{color:var(--text-secondary);white-space:nowrap;text-align:right;width:70px}
+.track-table .col-acts{width:100px;text-align:right}
+.track-table .col-acts .acts{display:flex;gap:3px;justify-content:flex-end;opacity:0;transition:opacity 0.15s}
+.track-table tr:hover .acts{opacity:1}
+
+/* Buttons */
+.btn{border:none;padding:5px 10px;border-radius:var(--radius);cursor:pointer;font-size:0.8em;transition:all 0.15s;white-space:nowrap}
+.btn-play{background:var(--accent-dim);color:var(--accent)}
+.btn-play:hover{background:var(--accent);color:var(--bg-primary)}
+.btn-add{background:rgba(63,185,80,0.1);color:var(--success)}
+.btn-add:hover{background:var(--success);color:var(--bg-primary)}
+.btn-move{background:rgba(136,132,216,0.1);color:#a8a4e6}
+.btn-move:hover{background:#7c78c8;color:#fff}
+.btn-del{background:rgba(255,68,68,0.1);color:var(--danger)}
+.btn-del:hover{background:var(--danger);color:#fff}
+.btn-accent{background:var(--accent);color:var(--bg-primary);font-weight:500}
+.btn-accent:hover{background:var(--accent-hover)}
+.btn-sm{padding:3px 8px;font-size:0.75em}
+
+/* Playlists */
+.playlists{margin-top:16px}
+.pl-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
+.pl-header{display:flex;align-items:center;padding:10px 12px;cursor:pointer;gap:8px}
+.pl-header .name{flex:1;font-weight:500;font-size:0.9em}
+.pl-header .count{color:var(--text-secondary);font-size:0.8em}
+.pl-tracks{border-top:1px solid var(--border);max-height:300px;overflow-y:auto}
+.pl-track{display:flex;align-items:center;padding:6px 12px;font-size:0.85em;border-bottom:1px solid rgba(255,255,255,0.03);gap:6px}
+.pl-track:hover{background:var(--accent-dim)}
+.pl-track .num{color:var(--text-secondary);width:24px;text-align:center;flex-shrink:0}
+.pl-track .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-track .rm{opacity:0;cursor:pointer;color:var(--danger);padding:2px 6px}
+.pl-track:hover .rm{opacity:1}
+.pl-actions{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--border)}
+
+/* Player bar */
+.player-bar{position:fixed;bottom:0;left:220px;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:none;flex-direction:column;padding:10px 16px 12px;z-index:100}
+.player-bar.show{display:flex}
+.player-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.player-controls{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.player-controls button{background:none;border:none;color:var(--text-primary);font-size:1.3em;cursor:pointer;padding:4px 6px;border-radius:var(--radius)}
+.player-controls button:hover{color:var(--accent);background:var(--accent-dim)}
+.player-info{flex:1;min-width:0;overflow:hidden}
+.player-info .title{font-size:0.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.player-info .artist{font-size:0.78em;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.player-bottom{display:flex;align-items:center;gap:10px}
+.player-bottom .time{font-size:0.75em;color:var(--text-secondary);min-width:38px;font-variant-numeric:tabular-nums}
+.player-bottom .time.right{text-align:right}
+.seek-wrap{flex:1;position:relative;height:28px;display:flex;align-items:center}
+.seek-track{width:100%;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;position:relative}
+.seek-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;pointer-events:none}
+.seek-thumb{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);top:50%;transform:translate(-50%,-50%);left:0%;box-shadow:0 0 6px rgba(104,225,253,0.4);pointer-events:none}
+
+/* Playlist dropdown */
+.pl-dropdown{display:none;position:fixed;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);min-width:180px;max-height:240px;overflow-y:auto;z-index:250;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.pl-dropdown.show{display:block}
+.pl-dropdown .dd-title{padding:8px 12px;font-size:0.78em;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px;border-bottom:1px solid var(--border)}
+.pl-dropdown .dd-item{padding:8px 12px;cursor:pointer;font-size:0.88em;transition:background 0.1s}
+.pl-dropdown .dd-item:hover{background:var(--accent-dim);color:var(--accent)}
+.pl-dropdown .dd-item.new{color:var(--success);border-top:1px solid var(--border)}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:20px;min-width:300px;max-width:90vw}
+.modal h3{margin-bottom:12px;font-size:1em}
+.modal input[type="text"],.modal select{width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:0.9em;margin-bottom:12px}
+.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg-secondary);border:1px solid var(--border);padding:8px 16px;border-radius:var(--radius);font-size:0.85em;z-index:400;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Empty */
+.empty{text-align:center;color:var(--text-secondary);padding:20px;font-size:0.9em}
+
+/* WiFi Settings */
+.wifi-card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.wifi-card h3{font-size:0.92em;margin-bottom:12px;color:var(--accent)}
+.wifi-card .info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.88em}
+.wifi-card .info-row .label{color:var(--text-secondary)}
+.wifi-card .info-row .val{color:var(--text-primary);font-family:monospace}
+.wifi-card .info-row .val.accent{color:var(--accent)}
+.network-list{list-style:none;margin:10px 0}
+.network-list li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;transition:background 0.15s;font-size:0.88em}
+.network-list li:hover{background:var(--accent-dim)}
+.network-list li.selected{background:var(--accent-dim);border:1px solid var(--accent)}
+.network-list .ssid{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.network-list .signal{color:var(--text-secondary);font-size:0.82em;white-space:nowrap}
+.network-list .lock{font-size:0.8em;color:var(--text-secondary)}
+.wifi-input{width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:0.9em;margin:8px 0}
+.wifi-input:focus{border-color:var(--accent);outline:none}
+.wifi-actions{display:flex;gap:8px;margin-top:12px}
+.wifi-spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Connection status bar */
+.conn-bar{padding:6px 20px;background:var(--bg-tertiary);border-bottom:1px solid var(--border);font-size:0.78em;color:var(--text-secondary);display:flex;gap:16px;flex-wrap:wrap}
+.conn-bar .tag{display:inline-flex;align-items:center;gap:4px}
+.conn-bar .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.conn-bar .dot.on{background:var(--success)}
+.conn-bar .dot.off{background:var(--text-secondary)}
+
+/* Mobile */
+@media(max-width:700px){
+  .hamburger{display:flex}
+  .sidebar{position:fixed;left:-240px;transition:left 0.25s;height:100vh}
+  .sidebar.open{left:0}
+  .sidebar-overlay.open{display:block}
+  .main{width:100vw}
+  .page-header{padding-left:56px}
+  .player-bar{left:0}
+  .content{padding:12px 14px;padding-bottom:130px}
+  .track-table .col-album{display:none}
+}
+@media(max-width:420px){
+  .track-table .col-artist{display:none}
+  .player-top{gap:8px}
+}
+</style>
+</head>
+<body>
+
+<div class="hamburger" id="hamburger" onclick="toggleSidebar()">&#9776;</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">
+      <div class="logo-shadow">CYBER FIDGET</div>
+      <div class="logo-main">CYBER FIDGET</div>
+    </div>
+    <div class="logo-sub">WEB PORTAL</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" data-page="media" onclick="showPage('media')">
+      <span class="icon">&#9835;</span> Media
+    </div>
+    <div class="nav-item" data-page="settings" onclick="showPage('settings')">
+      <span class="icon">&#9881;</span> Settings
+    </div>
+    <div class="nav-item" data-page="live" onclick="showPage('live')">
+      <span class="icon">&#9733;</span> Live Playlist
+      <span class="badge">Soon</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <h1 id="pageTitle">Media Manager</h1>
+    <div class="status" id="statusBar">Loading...</div>
+  </div>
+
+  <div class="conn-bar" id="connBar">
+    <span class="tag"><span class="dot on"></span> AP: <span id="connAP">192.168.4.1</span></span>
+    <span class="tag" id="connSTATag" style="display:none"><span class="dot" id="connSTADot"></span> WiFi: <span id="connSTA">-</span></span>
+  </div>
+
+  <div class="banner" id="captiveBanner">
+    <span>For uploads, open in your browser:</span>
+    <span class="url">192.168.4.1</span>
+    <span class="close-banner" onclick="this.parentElement.classList.remove('show')">&times;</span>
+  </div>
+
+  <div class="content" id="mediaPage">
+    <div class="drop-zone" id="dropZone">
+      <p class="main-text">Drop MP3 files here or tap to browse</p>
+      <p class="hint">Supports multiple files</p>
+      <div class="folder-sel" onclick="event.stopPropagation()">
+        Upload to: <select id="uploadDir" onclick="event.stopPropagation()"><option value="/media">/media (root)</option></select>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".mp3,audio/mpeg" multiple>
+
+    <div class="upload-bar" id="uploadBar">
+      <div class="bar"><div class="fill" id="uploadFill"></div></div>
+      <div class="info">
+        <span id="uploadName">...</span>
+        <span id="uploadPct">0%</span>
+      </div>
+    </div>
+
+    <div class="section-hdr">
+      Files on device
+      <div class="view-toggle">
+        <span class="vt" data-view="tree" onclick="setView('tree')">Folders</span>
+        <span class="vt active" data-view="table" onclick="setView('table')">All Tracks</span>
+      </div>
+      <span class="spacer"></span>
+      <span class="action" onclick="createFolder()">+ Folder</span>
+    </div>
+    <div class="search-row" id="searchRow">
+      <input type="text" id="searchInput" placeholder="Search tracks..." oninput="filterTracks()">
+    </div>
+    <ul class="file-tree" id="fileTree" style="display:none"><li class="empty">Loading...</li></ul>
+    <table class="track-table show" id="trackTable">
+      <thead><tr>
+        <th class="sortable" onclick="sortTable('title')">Title <span id="sort_title" class="sort-arrow">&#9650;</span></th>
+        <th class="col-artist sortable" onclick="sortTable('artist')">Artist <span id="sort_artist" class="sort-arrow"></span></th>
+        <th class="col-album sortable" onclick="sortTable('album')">Album <span id="sort_album" class="sort-arrow"></span></th>
+        <th class="col-size sortable" onclick="sortTable('size')">Size <span id="sort_size" class="sort-arrow"></span></th>
+        <th class="col-acts"></th>
+      </tr></thead>
+      <tbody id="trackBody"></tbody>
+    </table>
+
+    <div class="section-hdr" style="margin-top:24px">
+      Playlists
+      <span class="spacer"></span>
+      <span class="action" onclick="createPlaylist()">+ Playlist</span>
+    </div>
+    <div class="playlists" id="playlistList"></div>
+  </div>
+
+  <div class="content" id="settingsPage" style="display:none">
+    <div class="wifi-card" id="wifiStatusCard">
+      <h3>WiFi Connection</h3>
+      <div id="wifiStatusContent">
+        <div class="info-row"><span class="label">Status</span><span class="val" id="wifiStatusText">Not connected</span></div>
+      </div>
+    </div>
+
+    <div class="wifi-card">
+      <h3>Available Networks</h3>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn btn-accent" onclick="scanWifi()" id="scanBtn">Scan for Networks</button>
+      </div>
+      <ul class="network-list" id="networkList"></ul>
+      <div id="wifiConnectForm" style="display:none">
+        <div style="font-size:0.85em;margin-bottom:4px;color:var(--text-secondary)">Connecting to: <strong id="selectedSSID" style="color:var(--text-primary)"></strong></div>
+        <input type="password" class="wifi-input" id="wifiPass" placeholder="Password (leave empty for open network)">
+        <div class="wifi-actions">
+          <button class="btn" onclick="cancelWifiConnect()">Cancel</button>
+          <button class="btn btn-accent" onclick="doWifiConnect()" id="connectBtn">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wifi-card">
+      <h3>Access Point</h3>
+      <div class="info-row"><span class="label">SSID</span><span class="val">CyberFidget</span></div>
+      <div class="info-row"><span class="label">IP</span><span class="val accent" id="apIPDisplay">192.168.4.1</span></div>
+      <div class="info-row"><span class="label">Status</span><span class="val" style="color:var(--success)">Always available</span></div>
+    </div>
+  </div>
+  <div class="content" id="livePage" style="display:none">
+    <div class="empty">Live collaborative playlist coming soon.</div>
+  </div>
+</div>
+
+<div class="player-bar" id="playerBar">
+  <div class="player-top">
+    <div class="player-controls">
+      <button onclick="playerPrev()" title="Restart">&#9664;&#9664;</button>
+      <button id="btnPlay" onclick="playerToggle()" title="Play/Pause">&#9654;</button>
+      <button onclick="playerNext()" title="Next">&#9654;&#9654;</button>
+    </div>
+    <div class="player-info">
+      <div class="title" id="pTitle">-</div>
+      <div class="artist" id="pArtist">-</div>
+    </div>
+  </div>
+  <div class="player-bottom">
+    <span class="time" id="pCur">0:00</span>
+    <div class="seek-wrap" id="seekWrap">
+      <div class="seek-track">
+        <div class="seek-fill" id="seekFill"></div>
+      </div>
+      <div class="seek-thumb" id="seekThumb"></div>
+    </div>
+    <span class="time right" id="pDur">0:00</span>
+  </div>
+</div>
+
+<div class="pl-dropdown" id="plDropdown"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <h3 id="modalTitle">New Folder</h3>
+    <input type="text" id="modalInput" placeholder="Name...">
+    <div id="modalExtra"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" id="modalOk" onclick="modalConfirm()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<audio id="audio" preload="none"></audio>
+
+<script>
+// ─── State ───
+let files=[], playlists=[], queue=[], queueIdx=-1, currentView='table';
+let flatTracks=[], sortCol='title', sortAsc=true, searchQuery='';
+let allFolders=[]; // cached folder paths for move/upload
+let nowPlayingUrl='', playingSource=''; // 'tracks' or 'playlist'
+const audio=document.getElementById('audio');
+const $=id=>document.getElementById(id);
+
+// ─── Utilities ───
+function fmt(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+function fmtTime(s){if(isNaN(s))return'0:00';s=Math.floor(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function basename(p){const i=p.lastIndexOf('/');return i>=0?p.substring(i+1):p}
+function stripExt(n){const i=n.lastIndexOf('.');return i>0?n.substring(0,i):n}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
+// ─── Sidebar / Hamburger ───
+function toggleSidebar(){
+  $('sidebar').classList.toggle('open');
+  $('sidebarOverlay').classList.toggle('open');
+}
+function showPage(p){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));
+  $('mediaPage').style.display=p==='media'?'':'none';
+  $('settingsPage').style.display=p==='settings'?'':'none';
+  $('livePage').style.display=p==='live'?'':'none';
+  $('pageTitle').textContent=p==='media'?'Media Manager':p==='settings'?'Settings':'Live Playlist';
+  if(window.innerWidth<=700)toggleSidebar();
+}
+
+// ─── View Toggle ───
+function setView(v){
+  currentView=v;
+  document.querySelectorAll('.view-toggle .vt').forEach(e=>e.classList.toggle('active',e.dataset.view===v));
+  $('fileTree').style.display=v==='tree'?'':'none';
+  $('trackTable').classList.toggle('show',v==='table');
+  $('searchRow').classList.toggle('show',v==='table');
+}
+
+// ─── File Loading ───
+async function loadFiles(){
+  try{
+    const r=await fetch('/api/files');
+    files=await r.json();
+    allFolders=['/media'];
+    collectFolders(files,'');
+    renderTree(files,$('fileTree'),'');
+    updateUploadDirSelect();
+  }catch(e){$('fileTree').innerHTML='<li class="empty">Error loading files</li>'}
+  loadStatus();
+  loadTracks();
+}
+function collectFolders(items,prefix){
+  for(const f of items){
+    if(f.type==='dir'){
+      const p=prefix+'/'+f.name;
+      allFolders.push('/media'+p);
+      if(f.children)collectFolders(f.children,p);
+    }
+  }
+}
+function updateUploadDirSelect(){
+  const sel=$('uploadDir');
+  const cur=sel.value;
+  sel.innerHTML=allFolders.map(f=>'<option value="'+esc(f)+'">'+esc(f.replace('/media','/ (root)').replace(/^\/ \(root\)\//,'/'))+'</option>').join('');
+  sel.value=cur||'/media';
+}
+
+// ─── Tree View ───
+function renderTree(items,el,prefix){
+  if(!items.length){el.innerHTML='<li class="empty">No files yet — drop some MP3s above!</li>';return}
+  let h='';
+  items.sort((a,b)=>{if(a.type!==b.type)return a.type==='dir'?-1:1;return a.name.localeCompare(b.name)});
+  for(const f of items){
+    const path=prefix+'/'+f.name;
+    if(f.type==='dir'){
+      const id='d_'+btoa(unescape(encodeURIComponent(path))).replace(/[^a-zA-Z0-9]/g,'');
+      h+='<li class="folder-toggle" onclick="togDir(\''+id+'\')">';
+      h+='<span class="icon" id="'+id+'_i">&#9654;</span>';
+      h+='<span class="name">'+esc(f.name)+'/</span>';
+      h+='<span class="size">'+(f.children?f.children.length:0)+' items</span>';
+      h+='<span class="acts">';
+      h+='<button class="btn btn-del btn-sm" onclick="event.stopPropagation();delPath(\''+esc(path)+'\',true)">Del</button>';
+      h+='</span></li>';
+      h+='<ul class="file-tree sub" id="'+id+'" style="display:none">';
+      if(f.children&&f.children.length){const t=document.createElement('ul');renderTree(f.children,t,path);h+=t.innerHTML}
+      else h+='<li class="empty">Empty folder</li>';
+      h+='</ul>';
+    }else{
+      const mediaPath='/media'+path;
+      const safeName=esc(f.name);
+      const safePath=esc(path);
+      h+='<li>';
+      h+='<span class="icon">&#9835;</span>';
+      h+='<span class="name" title="'+safePath+'">'+safeName+'</span>';
+      h+='<span class="size">'+fmt(f.size||0)+'</span>';
+      h+='<span class="acts">';
+      h+='<button class="btn btn-play btn-sm" onclick="event.stopPropagation();playTrack(\''+esc(mediaPath)+'\',\''+safeName+'\',\'\',\'tracks\')">&#9654;</button>';
+      h+='<button class="btn btn-add btn-sm" onclick="event.stopPropagation();showAddToPl(event,\''+esc(mediaPath)+'\')">+PL</button>';
+      h+='<button class="btn btn-move btn-sm" onclick="event.stopPropagation();moveFile(\''+safePath+'\')">Move</button>';
+      h+='<button class="btn btn-del btn-sm" onclick="event.stopPropagation();delPath(\''+safePath+'\')">Del</button>';
+      h+='</span></li>';
+    }
+  }
+  el.innerHTML=h;
+}
+function togDir(id){
+  const el=$(id),ic=$(id+'_i');
+  if(el.style.display==='none'){el.style.display='';ic.innerHTML='&#9660;'}
+  else{el.style.display='none';ic.innerHTML='&#9654;'}
+}
+
+// ─── Table View (flat, with ID3 metadata from /api/tracks) ───
+async function loadTracks(){
+  try{
+    const r=await fetch('/api/tracks');
+    flatTracks=(await r.json()).map(t=>({
+      name:basename(t.path),path:t.path,
+      folder:t.path.substring(0,t.path.lastIndexOf('/')),
+      title:t.title||stripExt(basename(t.path)),
+      artist:t.artist||'-',album:t.album||'-',size:t.size||0
+    }));
+    applyTableSort();
+  }catch(e){$('trackBody').innerHTML='<tr><td colspan="5" class="empty">Error loading tracks</td></tr>'}
+}
+function applyTableSort(){
+  let list=flatTracks.slice();
+  if(searchQuery){
+    const q=searchQuery.toLowerCase();
+    list=list.filter(t=>t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q)||t.album.toLowerCase().includes(q)||t.name.toLowerCase().includes(q));
+  }
+  list.sort((a,b)=>{
+    let va,vb;
+    if(sortCol==='size'){va=a.size;vb=b.size}
+    else{va=(a[sortCol]||'').toLowerCase();vb=(b[sortCol]||'').toLowerCase()}
+    let r=va<vb?-1:va>vb?1:0;
+    return sortAsc?r:-r;
+  });
+  ['title','artist','album','size'].forEach(c=>{
+    const el=$('sort_'+c);
+    if(!el)return;
+    el.className='sort-arrow'+(c===sortCol?(sortAsc?' asc':' desc'):'');
+    el.innerHTML=c===sortCol?(sortAsc?'&#9650;':'&#9660;'):'';
+  });
+  const tb=$('trackBody');
+  if(!list.length){tb.innerHTML='<tr><td colspan="5" class="empty">'+(searchQuery?'No matching tracks':'No tracks')+'</td></tr>';return}
+  tb.innerHTML=list.map(t=>{
+    return '<tr data-path="'+esc(t.path)+'">'+
+      '<td class="col-title" title="'+esc(t.path)+'">'+esc(t.title)+'</td>'+
+      '<td class="col-artist">'+esc(t.artist)+'</td>'+
+      '<td class="col-album">'+esc(t.album)+'</td>'+
+      '<td class="col-size">'+fmt(t.size)+'</td>'+
+      '<td class="col-acts"><span class="acts">'+
+        '<button class="btn btn-play btn-sm" onclick="playTrack(\''+esc(t.path)+'\',\''+esc(t.title)+'\',\''+esc(t.artist)+'\',\'tracks\')">&#9654;</button>'+
+        '<button class="btn btn-add btn-sm" onclick="showAddToPl(event,\''+esc(t.path)+'\')">+PL</button>'+
+        '<button class="btn btn-del btn-sm" onclick="delPath(\''+esc(t.path)+'\')">Del</button>'+
+      '</span></td></tr>';
+  }).join('');
+  highlightPlaying();
+}
+function sortTable(col){
+  if(sortCol===col)sortAsc=!sortAsc;
+  else{sortCol=col;sortAsc=true}
+  applyTableSort();
+}
+function filterTracks(){
+  searchQuery=$('searchInput').value.trim();
+  applyTableSort();
+}
+
+// ─── Status ───
+async function loadStatus(){
+  try{
+    const r=await fetch('/api/status');const s=await r.json();
+    $('statusBar').textContent=s.files+' files | '+fmt(s.usedBytes)+' used of '+fmt(s.totalBytes)+' | '+s.clients+' client(s)';
+  }catch(e){}
+}
+
+// ─── Upload ───
+const dropZone=$('dropZone'),fileInput=$('fileInput');
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');uploadFiles(e.dataTransfer.files)});
+fileInput.addEventListener('change',()=>{uploadFiles(fileInput.files);fileInput.value=''});
+
+async function uploadFiles(fl){
+  const arr=Array.from(fl);
+  const dir=$('uploadDir').value;
+  for(let i=0;i<arr.length;i++)await uploadOne(arr[i],i+1,arr.length,dir);
+  $('uploadBar').classList.remove('active');
+  loadFiles();
+}
+function uploadOne(file,num,total,dir){
+  return new Promise((resolve,reject)=>{
+    $('uploadBar').classList.add('active');
+    $('uploadName').textContent='('+num+'/'+total+') '+file.name;
+    $('uploadFill').style.width='0%';
+    $('uploadPct').textContent='0%';
+    const xhr=new XMLHttpRequest();
+    const fd=new FormData();
+    fd.append('file',file,file.name);
+    xhr.upload.onprogress=e=>{if(e.lengthComputable){const p=Math.round(e.loaded/e.total*100);$('uploadFill').style.width=p+'%';$('uploadPct').textContent=p+'%'}};
+    xhr.onload=()=>xhr.status===200?resolve():reject(xhr.responseText);
+    xhr.onerror=()=>reject('Network error');
+    xhr.open('POST','/api/upload?dir='+encodeURIComponent(dir));
+    xhr.send(fd);
+  });
+}
+
+// ─── Delete ───
+async function delPath(path,isDir){
+  const name=basename(path);
+  if(!confirm('Delete '+(isDir?'folder':'file')+' "'+name+'"?'))return;
+  try{
+    const fp=path.startsWith('/media')?path:'/media'+path;
+    const r=await fetch('/api/delete?path='+encodeURIComponent(fp),{method:'POST'});
+    if(!r.ok)alert('Delete failed: '+await r.text());
+    else toast('Deleted '+name);
+    loadFiles();
+  }catch(e){alert('Error: '+e)}
+}
+
+// ─── Move ───
+function moveFile(path){
+  $('modalTitle').textContent='Move File';
+  $('modalInput').style.display='none';
+  $('modalExtra').innerHTML='<p style="margin-bottom:8px;font-size:0.88em;color:var(--text-secondary)">Moving: '+esc(basename(path))+'</p>'+
+    '<select id="moveDest" style="width:100%;padding:8px 10px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:0.9em;margin-bottom:12px">'+
+    allFolders.map(f=>'<option value="'+esc(f)+'">'+esc(f)+'</option>').join('')+'</select>';
+  $('modalOk').textContent='Move';
+  $('modalOverlay').classList.add('active');
+  modalCallback=async()=>{
+    const dest=document.getElementById('moveDest').value;
+    const fullSrc='/media'+path;
+    const fullDest=dest+'/'+basename(path);
+    if(fullSrc===fullDest){toast('Already in that folder');return}
+    try{
+      const r=await fetch('/api/move?from='+encodeURIComponent(fullSrc)+'&to='+encodeURIComponent(fullDest),{method:'POST'});
+      if(r.ok){toast('Moved!');loadFiles()}
+      else alert('Move failed: '+await r.text());
+    }catch(e){alert('Error: '+e)}
+  };
+}
+
+// ─── Create Folder ───
+let modalCallback=null;
+function createFolder(){
+  $('modalTitle').textContent='New Folder';
+  $('modalInput').value='';$('modalInput').placeholder='Folder name...';$('modalInput').style.display='';
+  $('modalExtra').innerHTML='';
+  $('modalOk').textContent='Create';
+  $('modalOverlay').classList.add('active');
+  $('modalInput').focus();
+  modalCallback=async(name)=>{
+    if(!name)return;
+    const dir=$('uploadDir').value;
+    await fetch('/api/mkdir?path='+encodeURIComponent(dir+'/'+name),{method:'POST'});
+    toast('Created folder: '+name);
+    loadFiles();
+  };
+}
+function closeModal(){$('modalOverlay').classList.remove('active');$('modalInput').style.display=''}
+function modalConfirm(){
+  const v=$('modalInput').style.display==='none'?null:$('modalInput').value.trim();
+  closeModal();
+  if(modalCallback)modalCallback(v);
+}
+$('modalInput').addEventListener('keydown',e=>{if(e.key==='Enter')modalConfirm()});
+
+// ─── Audio Player ───
+let _fromQueue=false;
+function playTrack(url,fallbackTitle,fallbackArtist,source){
+  audio.src=url;audio.play();
+  $('playerBar').classList.add('show');
+  nowPlayingUrl=url;
+  if(source)playingSource=source;
+  let title=fallbackTitle||stripExt(basename(url));
+  let artist=fallbackArtist||'';
+  // Look up real ID3 metadata from flatTracks
+  const found=flatTracks.find(t=>t.path===url);
+  if(found){title=found.title||title;artist=found.artist||artist}
+  $('pTitle').textContent=title;
+  $('pArtist').textContent=artist!=='-'?artist:'';
+  $('btnPlay').innerHTML='&#10074;&#10074;';
+  // Build queue from all tracks (unless navigating within existing queue)
+  if(!_fromQueue&&flatTracks.length){
+    queue=flatTracks.map(t=>({url:t.path,title:t.title,artist:t.artist}));
+    queueIdx=queue.findIndex(q=>q.url===url);
+    if(queueIdx<0)queueIdx=0;
+  }
+  _fromQueue=false;
+  highlightPlaying();
+}
+function playerToggle(){
+  if(audio.paused){audio.play();$('btnPlay').innerHTML='&#10074;&#10074;'}
+  else{audio.pause();$('btnPlay').innerHTML='&#9654;'}
+}
+function playerPrev(){
+  if(queue.length&&queueIdx>0){queueIdx--;_fromQueue=true;const t=queue[queueIdx];playTrack(t.url,t.title,t.artist)}
+  else audio.currentTime=0;
+}
+function playerNext(){
+  if(queue.length&&queueIdx<queue.length-1){queueIdx++;_fromQueue=true;const t=queue[queueIdx];playTrack(t.url,t.title,t.artist)}
+}
+
+// ─── Now-playing highlight ───
+function highlightPlaying(){
+  document.querySelectorAll('.playing').forEach(e=>e.classList.remove('playing'));
+  if(!nowPlayingUrl)return;
+  if(playingSource==='tracks'){
+    $('trackBody').querySelectorAll('tr[data-path]').forEach(r=>{
+      if(r.dataset.path===nowPlayingUrl)r.classList.add('playing');
+    });
+  }else if(playingSource==='playlist'){
+    document.querySelectorAll('.pl-track[data-path]').forEach(el=>{
+      if(el.dataset.path===nowPlayingUrl)el.classList.add('playing');
+    });
+  }
+}
+
+// Seekbar (visual progress only — interactive scrubbing backlogged)
+const seekFill=$('seekFill'),seekThumb=$('seekThumb');
+audio.addEventListener('timeupdate',()=>{
+  if(!audio.duration)return;
+  $('pCur').textContent=fmtTime(audio.currentTime);
+  $('pDur').textContent='-'+fmtTime(audio.duration-audio.currentTime);
+  const p=audio.currentTime/audio.duration*100;
+  seekFill.style.width=p+'%';seekThumb.style.left=p+'%';
+});
+audio.addEventListener('ended',()=>{$('btnPlay').innerHTML='&#9654;';playerNext()});
+
+// ─── Playlists ───
+async function loadPlaylists(){
+  try{const r=await fetch('/api/playlists');playlists=await r.json();renderPlaylists()}
+  catch(e){$('playlistList').innerHTML='<div class="empty">Error loading playlists</div>'}
+}
+function renderPlaylists(){
+  const el=$('playlistList');
+  if(!playlists.length){el.innerHTML='<div class="empty">No playlists yet — create one above!</div>';return}
+  el.innerHTML=playlists.map(p=>{
+    const id='pl_'+btoa(unescape(encodeURIComponent(p.name))).replace(/[^a-zA-Z0-9]/g,'');
+    return '<div class="pl-card" id="'+id+'">'+
+      '<div class="pl-header" onclick="togglePl(\''+esc(p.name)+'\')">'+
+      '<span class="name">'+esc(p.name)+'</span>'+
+      '<span class="count">'+(p.tracks||0)+' tracks</span>'+
+      '<button class="btn btn-play btn-sm" onclick="event.stopPropagation();playPlaylist(\''+esc(p.name)+'\')">&#9654; Play</button>'+
+      '</div></div>';
+  }).join('');
+}
+async function togglePl(name){
+  const id='pl_'+btoa(unescape(encodeURIComponent(name))).replace(/[^a-zA-Z0-9]/g,'');
+  const card=$(id);
+  let tracks=card.querySelector('.pl-tracks');
+  if(tracks){tracks.remove();card.querySelector('.pl-actions')?.remove();return}
+  const r=await fetch('/api/playlist?name='+encodeURIComponent(name));
+  const data=await r.json();
+  let h='<div class="pl-tracks">';
+  if(data.tracks.length){
+    data.tracks.forEach((t,i)=>{
+      const found=flatTracks.find(ft=>ft.path===t);
+      const title=found?found.title:stripExt(basename(t));
+      const artist=found?(found.artist!=='-'?found.artist:''):'';
+      const missing=!found;
+      h+='<div class="pl-track'+(missing?' missing':'')+'" data-path="'+esc(t)+'" style="'+(missing?'opacity:0.5;':'')+'">'+
+        '<span class="num">'+(i+1)+'</span>'+
+        '<button class="btn btn-play btn-sm" style="flex-shrink:0;padding:2px 6px" onclick="event.stopPropagation();playTrack(\''+esc(t)+'\',\''+esc(title)+'\',\''+esc(artist)+'\',\'playlist\')">&#9654;</button>'+
+        '<span class="name" title="'+esc(t)+'">'+esc(title)+(artist?' <span style="color:var(--text-secondary);font-size:0.88em">&mdash; '+esc(artist)+'</span>':'')+(missing?' <span style="color:var(--danger);font-size:0.8em">(missing)</span>':'')+'</span>'+
+        '<span class="rm" onclick="rmFromPl(\''+esc(name)+'\','+i+')">&#10005;</span>'+
+        '</div>';
+    });
+  }else h+='<div class="empty" style="padding:8px">Empty playlist</div>';
+  h+='</div><div class="pl-actions">'+
+    '<button class="btn btn-del btn-sm" onclick="deletePl(\''+esc(name)+'\')">Delete Playlist</button>'+
+    '</div>';
+  card.insertAdjacentHTML('beforeend',h);
+  highlightPlaying();
+}
+function createPlaylist(){
+  $('modalTitle').textContent='New Playlist';
+  $('modalInput').value='';$('modalInput').placeholder='Playlist name...';$('modalInput').style.display='';
+  $('modalExtra').innerHTML='';
+  $('modalOk').textContent='Create';
+  $('modalOverlay').classList.add('active');
+  $('modalInput').focus();
+  modalCallback=async(name)=>{
+    if(!name)return;
+    await fetch('/api/playlist?name='+encodeURIComponent(name),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tracks:[]})});
+    toast('Created playlist: '+name);
+    loadPlaylists();
+  };
+}
+async function deletePl(name){
+  if(!confirm('Delete playlist "'+name+'"?'))return;
+  await fetch('/api/playlist/delete?name='+encodeURIComponent(name),{method:'POST'});
+  toast('Deleted playlist');loadPlaylists();
+}
+async function rmFromPl(name,idx){
+  const r=await fetch('/api/playlist?name='+encodeURIComponent(name));
+  const data=await r.json();
+  data.tracks.splice(idx,1);
+  await fetch('/api/playlist?name='+encodeURIComponent(name),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const id='pl_'+btoa(unescape(encodeURIComponent(name))).replace(/[^a-zA-Z0-9]/g,'');
+  const card=$(id);
+  card.querySelector('.pl-tracks')?.remove();
+  card.querySelector('.pl-actions')?.remove();
+  togglePl(name);loadPlaylists();
+}
+async function playPlaylist(name){
+  const r=await fetch('/api/playlist?name='+encodeURIComponent(name));
+  const data=await r.json();
+  if(!data.tracks.length)return;
+  queue=data.tracks.map(t=>{
+    const found=flatTracks.find(ft=>ft.path===t);
+    return{url:t,title:found?found.title:stripExt(basename(t)),artist:found?found.artist:''};
+  });
+  queueIdx=0;_fromQueue=true;playTrack(queue[0].url,queue[0].title,queue[0].artist,'playlist');
+}
+
+// ─── Add to Playlist Dropdown ───
+let addTrackPath='';
+function showAddToPl(ev,trackPath){
+  ev.stopPropagation();
+  addTrackPath=trackPath;
+  const dd=$('plDropdown');
+  let h='<div class="dd-title">Add to playlist</div>';
+  if(playlists.length){
+    playlists.forEach(p=>{h+='<div class="dd-item" onclick="doAddToPl(\''+esc(p.name)+'\')">'+esc(p.name)+'</div>'});
+  }
+  h+='<div class="dd-item new" onclick="addToNewPl()">+ New playlist...</div>';
+  dd.innerHTML=h;
+  // Position near click
+  const x=Math.min(ev.clientX,window.innerWidth-200);
+  const y=Math.min(ev.clientY,window.innerHeight-200);
+  dd.style.left=x+'px';dd.style.top=y+'px';
+  dd.classList.add('show');
+  setTimeout(()=>document.addEventListener('click',closePLDD,{once:true}),0);
+}
+function closePLDD(){$('plDropdown').classList.remove('show')}
+async function doAddToPl(name){
+  closePLDD();
+  const r=await fetch('/api/playlist?name='+encodeURIComponent(name));
+  const data=await r.json();
+  data.tracks.push(addTrackPath);
+  await fetch('/api/playlist?name='+encodeURIComponent(name),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  toast('Added to '+name);loadPlaylists();
+}
+function addToNewPl(){
+  closePLDD();
+  $('modalTitle').textContent='New Playlist';
+  $('modalInput').value='';$('modalInput').placeholder='Playlist name...';$('modalInput').style.display='';
+  $('modalExtra').innerHTML='';
+  $('modalOk').textContent='Create & Add';
+  $('modalOverlay').classList.add('active');
+  $('modalInput').focus();
+  modalCallback=async(name)=>{
+    if(!name)return;
+    await fetch('/api/playlist?name='+encodeURIComponent(name),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tracks:[addTrackPath]})});
+    toast('Created playlist & added track');loadPlaylists();
+  };
+}
+
+// ─── WiFi Settings ───
+let selectedSSID='';
+async function loadWifiStatus(){
+  try{
+    const r=await fetch('/api/wifi/status');
+    const s=await r.json();
+    const tag=$('connSTATag'),dot=$('connSTADot'),sta=$('connSTA');
+    const sc=$('wifiStatusContent');
+    $('connAP').textContent=s.ap_ip||'192.168.4.1';
+    $('apIPDisplay').textContent=s.ap_ip||'192.168.4.1';
+    if(s.connected){
+      tag.style.display='';dot.className='dot on';
+      sta.textContent=s.mdns+' ('+s.ip+')';
+      sc.innerHTML='<div class="info-row"><span class="label">Status</span><span class="val" style="color:var(--success)">Connected</span></div>'+
+        '<div class="info-row"><span class="label">Network</span><span class="val">'+esc(s.ssid)+'</span></div>'+
+        '<div class="info-row"><span class="label">IP Address</span><span class="val accent">'+s.ip+'</span></div>'+
+        '<div class="info-row"><span class="label">mDNS</span><span class="val accent">'+s.mdns+'</span></div>'+
+        '<div style="margin-top:12px"><button class="btn btn-del" onclick="forgetWifi()">Forget Network</button></div>';
+    }else if(s.ssid&&s.status==='connecting'){
+      tag.style.display='';dot.className='dot off';
+      sta.textContent='Connecting to '+s.ssid+'...';
+      sc.innerHTML='<div class="info-row"><span class="label">Status</span><span class="val"><span class="wifi-spinner"></span>Connecting to '+esc(s.ssid)+'...</span></div>';
+      setTimeout(loadWifiStatus,2000);
+    }else{
+      tag.style.display='none';
+      sc.innerHTML='<div class="info-row"><span class="label">Status</span><span class="val">Not connected</span></div>';
+    }
+  }catch(e){}
+}
+
+function signalBars(rssi){
+  const n=rssi>-50?4:rssi>-60?3:rssi>-70?2:1;
+  let b='';
+  for(let i=1;i<=4;i++)b+='<span style="display:inline-block;width:3px;height:'+(4+i*3)+'px;background:'+(i<=n?'var(--accent)':'var(--border)')+';margin-right:1px;border-radius:1px;vertical-align:bottom"></span>';
+  return b;
+}
+
+async function scanWifi(){
+  const btn=$('scanBtn');
+  btn.disabled=true;btn.innerHTML='<span class="wifi-spinner"></span>Scanning...';
+  $('networkList').innerHTML='<li class="empty" style="padding:12px">Scanning nearby networks...</li>';
+  try{
+    // Start async scan, then poll until results are ready
+    const r=await fetch('/api/wifi/scan');
+    let data=await r.json();
+    if(data.status==='scanning'){
+      // Poll until scan completes
+      let attempts=0;
+      while(attempts<15){
+        await new Promise(ok=>setTimeout(ok,500));
+        const p=await fetch('/api/wifi/scan');
+        data=await p.json();
+        if(!data.status)break; // got results (array)
+        attempts++;
+      }
+      if(data.status){$('networkList').innerHTML='<li class="empty" style="padding:12px">Scan timed out</li>';return}
+    }
+    const nets=Array.isArray(data)?data:[];
+    if(!nets.length){$('networkList').innerHTML='<li class="empty" style="padding:12px">No networks found</li>';return}
+    $('networkList').innerHTML=nets.map(n=>
+      '<li onclick="selectNetwork(\''+esc(n.ssid)+'\')">'+
+      '<span class="lock">'+(n.secure?'&#128274;':'&#128275;')+'</span>'+
+      '<span class="ssid">'+esc(n.ssid)+'</span>'+
+      '<span class="signal">'+signalBars(n.rssi)+' '+n.rssi+'</span>'+
+      '</li>'
+    ).join('');
+  }catch(e){$('networkList').innerHTML='<li class="empty" style="padding:12px">Scan failed</li>'}
+  finally{btn.disabled=false;btn.textContent='Scan for Networks'}
+}
+
+function selectNetwork(ssid){
+  selectedSSID=ssid;
+  $('selectedSSID').textContent=ssid;
+  $('wifiPass').value='';
+  $('wifiConnectForm').style.display='';
+  $('wifiPass').focus();
+  document.querySelectorAll('.network-list li').forEach(li=>{
+    li.classList.toggle('selected',li.querySelector('.ssid')?.textContent===ssid);
+  });
+}
+
+function cancelWifiConnect(){
+  $('wifiConnectForm').style.display='none';
+  selectedSSID='';
+  document.querySelectorAll('.network-list li').forEach(li=>li.classList.remove('selected'));
+}
+
+async function doWifiConnect(){
+  if(!selectedSSID)return;
+  const btn=$('connectBtn');
+  btn.disabled=true;btn.innerHTML='<span class="wifi-spinner"></span>Connecting...';
+  try{
+    await fetch('/api/wifi/connect',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ssid:selectedSSID,pass:$('wifiPass').value})});
+    $('wifiConnectForm').style.display='none';
+    toast('Connecting to '+selectedSSID+'...');
+    // Poll for connection status
+    let attempts=0;
+    const poll=async()=>{
+      const r=await fetch('/api/wifi/status');
+      const s=await r.json();
+      if(s.connected){toast('Connected to '+s.ssid+'!');loadWifiStatus();return}
+      if(++attempts<10)setTimeout(poll,2000);
+      else{toast('Connection timed out');loadWifiStatus()}
+    };
+    setTimeout(poll,2000);
+  }catch(e){toast('Connection failed')}
+  finally{btn.disabled=false;btn.textContent='Connect'}
+}
+
+async function forgetWifi(){
+  if(!confirm('Forget saved WiFi network?'))return;
+  await fetch('/api/wifi/forget',{method:'POST'});
+  toast('WiFi network forgotten');
+  loadWifiStatus();
+}
+
+$('wifiPass').addEventListener('keydown',e=>{if(e.key==='Enter')doWifiConnect()});
+
+// ─── Captive Portal Detection ───
+function detectCaptive(){
+  // Android captive portal WebView and iOS CaptiveNetwork have limited file input support
+  const ua=navigator.userAgent||'';
+  if(/CaptivePortal|MiniProgram|wv\)/i.test(ua)){
+    $('captiveBanner').classList.add('show');
+  }
+  // Also show banner if file input click doesn't open picker (test on first interaction)
+  const fi=$('fileInput');
+  let origClick=false;
+  fi.addEventListener('click',()=>{origClick=true},{once:true});
+  // If after click the dialog doesn't appear, user is probably in restricted browser
+  // We'll show the banner subtly anyway since the URL is useful info
+}
+
+// ─── Init ───
+detectCaptive();
+$('searchRow').classList.add('show'); // table is default view
+loadFiles();
+loadPlaylists();
+loadWifiStatus();
+</script>
+</body>
+</html>
+)rawliteral";
