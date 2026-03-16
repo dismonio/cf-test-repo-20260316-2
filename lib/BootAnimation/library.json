@@ -1,0 +1,24 @@
+{
+    "name": "BootAnimation",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "HAL"
+        },
+        {
+            "name": "MenuManager"
+        },
+        {
+            "name": "ButtonManager"
+        },
+        {
+            "name": "BootAnimation"
+        },
+        {
+            "name": "images"
+        },
+        {
+            "name": "globals"
+        }
+    ]
+}
