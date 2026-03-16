@@ -1,0 +1,27 @@
+{
+    "name": "Booper",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "AudioManager"
+        },
+        {
+            "name": "Booper"
+        },
+        {
+            "name": "HAL"
+        },
+        {
+            "name": "DisplayProxy"
+        },
+        {
+            "name": "MenuManager"
+        },
+        {
+            "name": "ButtonManager"
+        },
+        {
+            "name": "globals"
+        }
+    ]
+}
