@@ -1,0 +1,30 @@
+{
+    "name": "BreakoutGame",
+    "version": "1.0.0",
+    "dependencies": [
+        {
+            "name": "functional"
+        },
+        {
+            "name": "AudioManager"
+        },
+        {
+            "name": "HAL"
+        },
+        {
+            "name": "DisplayProxy"
+        },
+        {
+            "name": "MenuManager"
+        },
+        {
+            "name": "BreakoutGame"
+        },
+        {
+            "name": "ButtonManager"
+        },
+        {
+            "name": "globals"
+        }
+    ]
+}
