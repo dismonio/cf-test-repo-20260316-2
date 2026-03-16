@@ -1,0 +1,11 @@
+{
+    "name": "AppManager",
+    "version": "1.0.0",
+    "dependencies": [
+        {"name": "PowerManager"},
+        {"name": "HAL"},
+        {"name": "AppDefs"},
+        {"name": "MenuManager"},
+        {"name": "globals"}
+    ]
+}
